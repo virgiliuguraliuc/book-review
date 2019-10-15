@@ -1,9 +1,10 @@
 package org.fasttrackit.bookreview.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
+import java.security.AuthProvider;
 import java.util.Objects;
 
 @Entity
@@ -16,12 +17,26 @@ public class User {
     @NotNull
     private String lastName;
     @NotNull
-    private String username;
+    private String name;
     @NotNull
     private String email;
-    @NotNull
+    @JsonIgnore
     private String password;
     private Double bookTokens;
+    private String imageUrl;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    private AuthProvider provider;
+
+    private String providerId;
+
+    public enum  AuthProvider {
+        local,
+        facebook,
+        google,
+        github
+    }
 
     public Long getId() {
         return id;
@@ -47,12 +62,12 @@ public class User {
         this.lastName = lastName;
     }
 
-    public String getUsername() {
-        return username;
+    public String getName() {
+        return name;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getEmail() {
@@ -79,16 +94,43 @@ public class User {
         this.bookTokens = bookTokens;
     }
 
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public AuthProvider getProvider() {
+        return provider;
+    }
+
+    public void setProvider(AuthProvider provider) {
+        this.provider = provider;
+    }
+
+    public String getProviderId() {
+        return providerId;
+    }
+
+    public void setProviderId(String providerId) {
+        this.providerId = providerId;
+    }
+
     @Override
     public String toString() {
         return "User{" +
                 "id=" + id +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
-                ", username='" + username + '\'' +
+                ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
                 ", password='" + password + '\'' +
-                ", bookTokens='" + bookTokens + '\'' +
+                ", bookTokens=" + bookTokens +
+                ", imageUrl='" + imageUrl + '\'' +
+                ", provider=" + provider +
+                ", providerId='" + providerId + '\'' +
                 '}';
     }
 
@@ -97,17 +139,20 @@ public class User {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return id == user.id &&
+        return Objects.equals(id, user.id) &&
                 Objects.equals(firstName, user.firstName) &&
                 Objects.equals(lastName, user.lastName) &&
-                Objects.equals(username, user.username) &&
+                Objects.equals(name, user.name) &&
                 Objects.equals(email, user.email) &&
                 Objects.equals(password, user.password) &&
-                Objects.equals(bookTokens, user.bookTokens);
+                Objects.equals(bookTokens, user.bookTokens) &&
+                Objects.equals(imageUrl, user.imageUrl) &&
+                provider == user.provider &&
+                Objects.equals(providerId, user.providerId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, firstName, lastName, username, email, password, bookTokens);
+        return Objects.hash(id, firstName, lastName, name, email, password, bookTokens, imageUrl, provider, providerId);
     }
 }

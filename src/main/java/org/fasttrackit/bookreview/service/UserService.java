@@ -29,7 +29,7 @@ public class UserService {
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
-        user.setUsername(request.getUsername());
+        user.setName(request.getUsername());
         user.setPassword(request.getPassword());
         user.setBookTokens(10.0);
 
@@ -39,7 +39,7 @@ public class UserService {
     public User getUser(long id) {
         LOGGER.info("retrieving {}", id);
         return  userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User " + id + " not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Failed to retrieve User ", "id", id));
     }
 
     public User updateUser(long id, SaveUserRequest request){
