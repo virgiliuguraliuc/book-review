@@ -21,9 +21,14 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import javax.servlet.Filter;
+import java.util.Arrays;
+import java.util.List;
 
+@EnableSwagger2
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(
@@ -52,6 +57,23 @@ public class SecurityConfig extends  WebSecurityConfigurerAdapter{
         public Filter tokenAuthenticationFilter() {
             return new TokenAuthenticationFilter();
         }
+
+
+
+    private static final List<String> AUTH_LIST = Arrays.asList(
+            "/swagger-resources/**",
+            "/swagger-ui.html**",
+            "/webjars/**",
+            "favicon.ico");
+
+
+
+    @Bean
+    public BasicAuthenticationEntryPoint swaggerAuthenticationEntryPoint() {
+        BasicAuthenticationEntryPoint entryPoint = new BasicAuthenticationEntryPoint();
+        entryPoint.setRealmName("Swagger Realm");
+        return entryPoint;
+    }
 
         /*
           By default, Spring OAuth2 uses HttpSessionOAuth2AuthorizationRequestRepository to save
@@ -109,7 +131,13 @@ public class SecurityConfig extends  WebSecurityConfigurerAdapter{
                             "/**/*.jpg",
                             "/**/*.html",
                             "/**/*.css",
-                            "/**/*.js")
+                            "/**/*.js",
+                            "/swagger-resources/**",
+                            "/swagger-ui.html**",
+                            "/webjars/**",
+                            "/v2/api-docs",
+                            "favicon.ico"
+                            )
                     .permitAll()
                     .antMatchers("/auth/**", "/oauth2/**")
                     .permitAll()
@@ -128,7 +156,9 @@ public class SecurityConfig extends  WebSecurityConfigurerAdapter{
                     .userService(customOAuth2UserService)
                     .and()
                     .successHandler(oAuth2AuthenticationSuccessHandler)
-                    .failureHandler(oAuth2AuthenticationFailureHandler);
+                    .failureHandler(oAuth2AuthenticationFailureHandler)
+                    ;
+
 
             // Add our custom Token based authentication filter
             http.addFilterBefore(tokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);

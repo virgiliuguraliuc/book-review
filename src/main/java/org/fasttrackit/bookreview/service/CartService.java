@@ -51,7 +51,7 @@ public class CartService {
     public CartResponse getCart(Long userId) {
         LOGGER.info(" retrieving cart for user " + userId);
         Cart cart = cartRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("there is no cart for user " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("there is no cart for user ", "user id", userId));
         CartResponse cartResponse = new CartResponse();
         cartResponse.setId(cart.getId());
 

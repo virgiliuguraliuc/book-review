@@ -46,7 +46,7 @@ public class BookService {
 
     public Book getBook(long id) {
         LOGGER.info("Retrieving product {}", id);
-        return bookRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product " + id + " not found" ));
+        return bookRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Book ", "not found with id", id  ));
     }
 
     public Page<Book> getBooks (GetBookRequest request, Pageable pageable){

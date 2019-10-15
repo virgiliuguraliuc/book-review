@@ -33,7 +33,7 @@ public class UserSteps {
         assertThat(user.getFirstName(), is(request.getFirstName()));
         assertThat(user.getLastName(), is(request.getLastName()));
         assertThat(user.getEmail(), is(request.getEmail()));
-        assertThat(user.getUsername(), is(request.getUsername()));
+        assertThat(user.getName(), is(request.getUsername()));
         assertThat(user.getPassword(), is(request.getPassword()));
         assertThat(user.getBookTokens(), is(request.getBookTokens()));
 
