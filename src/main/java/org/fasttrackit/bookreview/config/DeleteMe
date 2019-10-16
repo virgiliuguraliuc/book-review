@@ -1,0 +1,225 @@
+configurarea de swagger:
+
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Profile;
+import ro.imosteel.user.security.OAuth2ClientDetails;
+import springfox.documentation.builders.PathSelectors;
+import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.*;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spi.service.contexts.SecurityContext;
+import springfox.documentation.spring.web.plugins.Docket;
+import springfox.documentation.swagger.web.ApiKeyVehicle;
+import springfox.documentation.swagger.web.SecurityConfiguration;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * @author Flaviu Ratiu
+ * @since 04 Oct 2017
+ */
+
+@Configuration
+@Profile("!production")
+@EnableSwagger2
+//public class SwaggerConfiguration {
+
+    private final OAuth2ClientDetails swaggerClient;
+
+    @Value("${integration.service.user.url:http://127.0.0.1:7200}")
+    private String authorizationServerUrl;
+
+    @Value("${server.context-path}")
+    private String authorizationServerContextPath;
+
+    @Autowired
+    public SwaggerConfiguration(@Lazy OAuth2ClientDetails swaggerClient) {
+        this.swaggerClient = swaggerClient;
+    }
+
+    @Bean
+    public Docket api() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("ro.imosteel."))
+                .paths(PathSelectors.any())
+                .build()
+                .securitySchemes(Collections.singletonList(securitySchema()))
+                .securityContexts(Collections.singletonList(securityContext()));
+    }
+
+    private OAuth securitySchema() {
+        List authorizationScopeList = new ArrayList<>();
+
+        List grantTypes = new ArrayList<>();
+        GrantType resourceOwnerPasswordCredentialsGrant = new ResourceOwnerPasswordCredentialsGrant(
+                authorizationServerUrl + authorizationServerContextPath + "/oauth/token");
+
+        grantTypes.add(resourceOwnerPasswordCredentialsGrant);
+
+        return new OAuth("oauth2schema", authorizationScopeList, grantTypes);
+    }
+
+    private SecurityContext securityContext() {
+        return SecurityContext.builder().securityReferences(defaultAuth()).forPaths(PathSelectors.ant("/user/**"))
+                .build();
+    }
+
+    private List defaultAuth() {
+        final AuthorizationScope[] authorizationScopes = new AuthorizationScope[3];
+        authorizationScopes[0] = new AuthorizationScope("read", "read");
+
+        return Collections.singletonList(new SecurityReference("oauth2schema", authorizationScopes));
+    }
+
+    @Bean
+    public SecurityConfiguration securityInfo() {
+        return new SecurityConfiguration(swaggerClient.getClientId(), swaggerClient.getClientSecret(), "", "", "", ApiKeyVehicle.HEADER, "", " ");
+    }
+}
+
+6:31 PM
+        iar in whitelist in SecurityConfiguration adaugi:
+
+// swagger ui
+        "/swagger-resources/**",
+        "/swagger-ui.html",
+        "/v2/api-docs",
+        "/webjars/**",
+
+        6:32 PM
+        .antMatchers(AUTH_WHITELIST).permitAll()
+
+        6:33 PM
+        SecurityConfiguration:
+
+        package ro.imosteel.user.security;
+
+        import org.springframework.beans.factory.annotation.Value;
+        import org.springframework.context.annotation.Bean;
+        import org.springframework.context.annotation.Configuration;
+        import org.springframework.security.authentication.AuthenticationProvider;
+        import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+        import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+        import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+        import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+        import org.springframework.security.core.userdetails.UserDetailsService;
+        import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+        import org.springframework.security.crypto.password.PasswordEncoder;
+        import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler;
+        import ro.imosteel.user.service.UserDetailsServiceImpl;
+
+@Configuration
+public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+
+    private static final String[] AUTH_WHITELIST = {
+// local resources
+            "/resources/**",
+            "/static/**",
+            "/css/**",
+            "/images/**",
+
+// swagger ui
+            "/swagger-resources/**",
+            "/swagger-ui.html",
+            "/v2/api-docs",
+            "/webjars/**",
+
+// actuator
+            "/health",
+
+// api pages
+            "/error",
+            "/",
+
+// user service
+            "/oauth/authorize",
+            "/login",
+            "/users/login",
+            "/users/forgot-password",
+            "/users/logout",
+            "/users/*/passwords",
+
+// anonymous user tokens
+            "/tokens/password-reset",
+
+// create project with initial details
+            "/projects/incomplete",
+
+// get construction types tree
+            "/construction/types/children/**",
+
+    };
+
+    @Value("${security.oauth2.client.logout-redirect-uri}")
+    private String logoutRedirectUrl;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return new UserDetailsServiceImpl();
+    }
+
+    // encodes passwords on login
+    @Bean
+    public AuthenticationProvider authProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService());
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.authenticationProvider(authProvider());
+    }
+
+    @Override
+    public void configure(HttpSecurity http) throws Exception {
+        http
+                .requestMatchers()
+                .antMatchers(AUTH_WHITELIST)
+                .and()
+
+// todo: handle csrf and cors
+                .csrf().disable()
+                .cors()
+
+                .and()
+                .exceptionHandling()
+                .accessDeniedHandler(new OAuth2AccessDeniedHandler())
+
+                .and()
+                .formLogin()
+                .loginPage("/users/login")
+                .loginProcessingUrl("/login")
+                .permitAll()
+                .usernameParameter("username")
+                .passwordParameter("password")
+
+                .and()
+                .logout()
+
+                .and()
+                .anonymous()
+                .and()
+                .authorizeRequests()
+                .antMatchers(AUTH_WHITELIST).permitAll()
+                .anyRequest()
+                .authenticated();
+    }
+
+}
